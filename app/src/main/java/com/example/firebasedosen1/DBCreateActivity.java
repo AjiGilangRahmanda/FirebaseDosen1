@@ -19,9 +19,8 @@ import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
-
 public class DBCreateActivity extends AppCompatActivity {
-    // Variable yang merefers ke Firebase Realtime Database
+    // Variable yang merefer ke Firebase Realtime Database
     private DatabaseReference database;
     // Variable fields EditText dan Button
     private Button btSubmit;
@@ -43,20 +42,39 @@ public class DBCreateActivity extends AppCompatActivity {
         // Mengambil referensi ke Firebase Database
         database = FirebaseDatabase.getInstance().getReference();
 
-        // Kode yang dipanggil ketika tombol Submit diklik
-        btSubmit.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (!isEmpty(etNik.getText().toString()) && !isEmpty(etNama.getText().toString())) {
-                    submitDosen(new Dosen(etNik.getText().toString(), etNama.getText().toString(), etJa.getSelectedItem().toString()));
-                } else {
-                    Snackbar.make(findViewById(R.id.bt_submit), "Data Dosen tidak boleh kosong", Snackbar.LENGTH_LONG).show();
-                }
+        //Final Update
+        final Dosen dosen = (Dosen) getIntent().getSerializableExtra("data");
+        if (dosen != null) {
+            // Ini untuk update
+            etNik.setText(dosen.getNik());
+            etNama.setText(dosen.getNama());
+            // Assuming etJa is a Spinner, set the correct value (if necessary)
 
-                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-                imm.hideSoftInputFromWindow(etNama.getWindowToken(), 0);
-            }
-        });
+            btSubmit.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    dosen.setNik(etNik.getText().toString());
+                    dosen.setNama(etNama.getText().toString());
+                    dosen.setJa(etJa.getSelectedItem().toString());
+                    updateDosen(dosen);
+                }
+            });
+        } else {
+            // Kode yang dipanggil ketika tombol Submit diklik
+            btSubmit.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    if (!isEmpty(etNik.getText().toString()) && !isEmpty(etNama.getText().toString())) {
+                        submitDosen(new Dosen(etNik.getText().toString(), etNama.getText().toString(), etJa.getSelectedItem().toString()));
+                    } else {
+                        Snackbar.make(findViewById(R.id.bt_submit), "Data Dosen tidak boleh kosong", Snackbar.LENGTH_LONG).show();
+                    }
+
+                    InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                    imm.hideSoftInputFromWindow(etNama.getWindowToken(), 0);
+                }
+            });
+        }
     }
 
     private boolean isEmpty(String s) {
@@ -65,7 +83,22 @@ public class DBCreateActivity extends AppCompatActivity {
     }
 
     private void updateDosen(Dosen dosen) {
-        // Next Update
+        // Update Dosen
+        database.child("dosen")
+                .child(dosen.getKey())
+                .setValue(dosen)
+                .addOnSuccessListener(this, new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+                        Snackbar.make(findViewById(R.id.bt_submit), "Data Berhasil di Update",
+                                Snackbar.LENGTH_LONG).setAction("OKE", new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+                                finish();
+                            }
+                        }).show();
+                    }
+                });
     }
 
     // Fungsi Simpan data Dosen
@@ -80,7 +113,8 @@ public class DBCreateActivity extends AppCompatActivity {
             public void onSuccess(Void aVoid) {
                 etNik.setText("");
                 etNama.setText("");
-                etJa.getSelectedItem().toString();
+                // Assuming you need to reset the spinner to default position
+                etJa.setSelection(0);
                 Snackbar.make(findViewById(R.id.bt_submit), "Data berhasil ditambahkan", Snackbar.LENGTH_LONG).show();
             }
         });
